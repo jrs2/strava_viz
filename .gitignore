@@ -2,3 +2,4 @@
 *.csv
 *.h5
 strava_data_viz/.ipynb_checkpoints/strava_notebook-checkpoint.ipynb
+strava_data_viz/.ipynb_checkpoints/

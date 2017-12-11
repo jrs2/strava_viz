@@ -6,4 +6,5 @@ dependencies:
     - pytables
     - seaborn
     - matplotlib
+    - holoviews
 
