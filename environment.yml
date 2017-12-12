@@ -1,9 +1,12 @@
-name: strava_data_cache
+name: strava_data_viz
 
 dependencies:
     - python=3.5
     - pandas
     - pytables
+    - seaborn
+    - matplotlib
+    - holoviews
     - pip:
         - stravalib
 
