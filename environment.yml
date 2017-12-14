@@ -7,6 +7,9 @@ dependencies:
     - seaborn
     - matplotlib
     - holoviews
+    - datashader
+    - xarray
+    - geoviews
     - pip:
         - stravalib
 
