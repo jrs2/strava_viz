@@ -22,6 +22,7 @@ class strava_data_cache:
     Workout     = 6
     VirtualRide = 7
     AlpineSki   = 8
+    VirtualRun  = 9
 
     stream_types = ['time', 'latlng', 'distance', 'altitude', 'velocity_smooth', \
                         'heartrate', 'cadence', 'watts', 'temp', 'moving', 'grade_smooth']
@@ -44,6 +45,7 @@ class strava_data_cache:
            f.close()
         else:
            token = input('Enter access token: ')
+        print(f'Token {token}')
         self.client = Client(access_token=token)
         self.client.get_athlete() # Get current athlete details
 
@@ -87,9 +89,9 @@ class strava_data_cache:
         if len(self.activites_df) == 0:
             self.get_activities()         
 
-        type_map = pd.Series([self.Run,self.Ride,self.Swim,self.Walk,self.Workout,self.VirtualRide,self.Hike,self.AlpineSki],
+        type_map = pd.Series([self.Run,self.Ride,self.Swim,self.Walk,self.Workout,self.VirtualRide,self.Hike,self.AlpineSki, self.VirtualRun],
                              index = ['Run', 'Ride', 'Swim', 'Walk',
-                                        'Workout', 'VirtualRide', 'Hike', 'AlpineSki'])
+                                        'Workout', 'VirtualRide', 'Hike', 'AlpineSki','VirtualRun'])
                              
         with pd.HDFStore(self.streams_file,'a') as store:
             try:
@@ -102,13 +104,16 @@ class strava_data_cache:
                 if row.id in stream_ids:
                     continue
                 else:
-                    print("Processing ID: {} Name: {}".format(row.id,row.name))
+                    print("Processing ID: {} Name: {} Type : {}".format(row.id,row.name,row.type))
                 try:
                     stream = self.client.get_activity_streams(row.id, types=self.stream_types)
                 except:
                     print ("Unexpected error getting:", sys.exc_info()[0])
                     continue
                 try:
+                    if (stream == None):
+                        print ("Skipping empty stream: %s"%row.name)
+                        continue
                     temp_df = pd.DataFrame({i : stream[i].data for i in stream}, index=stream['time'].data)
                     if len(temp_df) == 0:
                         print ("Skipping empty stream: %s"%row.name)
@@ -117,17 +122,18 @@ class strava_data_cache:
                         temp_df['lat'], temp_df['lon'] = list(zip(*temp_df["latlng"]))
                         temp_df = temp_df.drop('latlng',axis=1)
                     if 'distance' in temp_df.keys():
-                        temp_df['distance'] = temp_df['distance']/1609
+                        temp_df['distance'] = temp_df['distance']/1609.0
                     temp_df['type'] = row.type
                     temp_df['id'] = row.id
-                    
+
                     #common formatting to get it in the same format for uniform writes
                     for col in find_setdiff(self.stream_cols,temp_df.keys()):
                         temp_df[col] = pd.np.nan
                     temp_df['heartrate'] = temp_df['heartrate'].astype('float')
                     temp_df['cadence'] = temp_df['cadence'].astype('float')
                     temp_df['velocity_smooth'] = temp_df['velocity_smooth'].astype('float')  
-                    temp_df['watts'] = temp_df['watts'].astype('float')  
+                    temp_df['watts'] = temp_df['watts'].astype('float')
+
                     temp_df['type'] = temp_df['type'].map(type_map)
                     store.append('streams', temp_df, data_columns=True, format='table',complib='blosc')
                 except:
